@@ -23,7 +23,7 @@ class PFNLayer(nn.Module):
             if self.num_groups is None:
                 self.norm = nn.BatchNorm1d(out_channels, eps=1e-3, momentum=0.01)
             else:
-                self.norm = nn.GroupNorm(num_groups=self.num_groups, num_channels=out_channels, eps=1e-3, momentum=0.01)
+                self.norm = nn.GroupNorm(num_groups=self.num_groups, num_channels=out_channels, eps=1e-3)
         else:
             self.linear = nn.Linear(in_channels, out_channels, bias=True)
 
