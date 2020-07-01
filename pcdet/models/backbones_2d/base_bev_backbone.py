@@ -15,7 +15,7 @@ class BaseBEVBackbone(nn.Module):
         num_filters = self.model_cfg.NUM_FILTERS
         num_upsample_filters = self.model_cfg.NUM_UPSAMPLE_FILTERS
         upsample_strides = self.model_cfg.UPSAMPLE_STRIDES
-        num_groups = self.model_cfg.NUM_GROUPS
+        num_groups = self.model_cfg.get('NUM_GROUPS', None)
 
         # Select norm layer
         if num_groups is None:

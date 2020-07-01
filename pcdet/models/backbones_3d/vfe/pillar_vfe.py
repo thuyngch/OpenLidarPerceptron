@@ -46,7 +46,7 @@ class PillarVFE(VFETemplate):
         super().__init__(model_cfg=model_cfg)
 
         self.use_norm = self.model_cfg.USE_NORM
-        self.num_groups = self.model_cfg.NUM_GROUPS
+        self.num_groups = self.model_cfg.get('NUM_GROUPS', None)
         self.with_distance = self.model_cfg.WITH_DISTANCE
         self.use_absolute_xyz = self.model_cfg.USE_ABSLOTE_XYZ
         num_point_features += 6 if self.use_absolute_xyz else 3
