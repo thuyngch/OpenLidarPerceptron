@@ -8,17 +8,22 @@ class PFNLayer(nn.Module):
                  in_channels,
                  out_channels,
                  use_norm=True,
+                 num_groups=None,
                  last_layer=False):
         super().__init__()
         
         self.last_vfe = last_layer
         self.use_norm = use_norm
+        self.num_groups = num_groups
         if not self.last_vfe:
             out_channels = out_channels // 2
 
         if self.use_norm:
             self.linear = nn.Linear(in_channels, out_channels, bias=False)
-            self.norm = nn.BatchNorm1d(out_channels, eps=1e-3, momentum=0.01)
+            if self.num_groups is None:
+                self.norm = nn.BatchNorm1d(out_channels, eps=1e-3, momentum=0.01)
+            else:
+                self.norm = nn.GroupNorm(num_groups=self.num_groups, num_channels=out_channels, eps=1e-3, momentum=0.01)
         else:
             self.linear = nn.Linear(in_channels, out_channels, bias=True)
 
@@ -41,6 +46,7 @@ class PillarVFE(VFETemplate):
         super().__init__(model_cfg=model_cfg)
 
         self.use_norm = self.model_cfg.USE_NORM
+        self.num_groups = self.model_cfg.NUM_GROUPS
         self.with_distance = self.model_cfg.WITH_DISTANCE
         self.use_absolute_xyz = self.model_cfg.USE_ABSLOTE_XYZ
         num_point_features += 6 if self.use_absolute_xyz else 3
@@ -56,7 +62,7 @@ class PillarVFE(VFETemplate):
             in_filters = num_filters[i]
             out_filters = num_filters[i + 1]
             pfn_layers.append(
-                PFNLayer(in_filters, out_filters, self.use_norm, last_layer=(i >= len(num_filters) - 2))
+                PFNLayer(in_filters, out_filters, self.use_norm, self.num_groups, last_layer=(i >= len(num_filters) - 2))
             )
         self.pfn_layers = nn.ModuleList(pfn_layers)
 
@@ -79,7 +85,7 @@ class PillarVFE(VFETemplate):
         return paddings_indicator
 
     def forward(self, batch_dict, **kwargs):
-  
+
         voxel_features, voxel_num_points, coords = batch_dict['voxels'], batch_dict['voxel_num_points'], batch_dict['voxel_coords']
         points_mean = voxel_features[:, :, :3].sum(dim=1, keepdim=True) / voxel_num_points.type_as(voxel_features).view(-1, 1, 1)
         f_cluster = voxel_features[:, :, :3] - points_mean

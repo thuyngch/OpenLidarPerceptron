@@ -53,6 +53,7 @@ MODEL:
         WITH_DISTANCE: False
         USE_ABSLOTE_XYZ: True
         USE_NORM: True
+        NUM_GROUPS: null
         NUM_FILTERS: [64]
 
     MAP_TO_BEV:
