@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from functools import partial
 
 
 class BaseBEVBackbone(nn.Module):
@@ -14,6 +15,13 @@ class BaseBEVBackbone(nn.Module):
         num_filters = self.model_cfg.NUM_FILTERS
         num_upsample_filters = self.model_cfg.NUM_UPSAMPLE_FILTERS
         upsample_strides = self.model_cfg.UPSAMPLE_STRIDES
+        num_groups = self.model_cfg.NUM_GROUPS
+
+        # Select norm layer
+        if num_groups is None:
+            norm_layer = nn.BatchNorm2d
+        else:
+            norm_layer = partial(nn.GroupNorm, num_groups=num_groups)
 
         num_levels = len(layer_nums)
         c_in_list = [input_channels, *num_filters[:-1]]
@@ -26,13 +34,13 @@ class BaseBEVBackbone(nn.Module):
                     c_in_list[idx], num_filters[idx], kernel_size=3,
                     stride=layer_strides[idx], padding=0, bias=False
                 ),
-                nn.BatchNorm2d(num_filters[idx], eps=1e-3, momentum=0.01),
+                norm_layer(num_filters[idx], eps=1e-3, momentum=0.01),
                 nn.ReLU()
             ]
             for k in range(layer_nums[idx]):
                 cur_layers.extend([
                     nn.Conv2d(num_filters[idx], num_filters[idx], kernel_size=3, padding=1, bias=False),
-                    nn.BatchNorm2d(num_filters[idx], eps=1e-3, momentum=0.01),
+                    norm_layer(num_filters[idx], eps=1e-3, momentum=0.01),
                     nn.ReLU()
                 ])
             self.blocks.append(nn.Sequential(*cur_layers))
@@ -43,7 +51,7 @@ class BaseBEVBackbone(nn.Module):
                     upsample_strides[idx],
                     stride=upsample_strides[idx], bias=False
                 ),
-                nn.BatchNorm2d(num_upsample_filters[idx], eps=1e-3, momentum=0.01),
+                norm_layer(num_upsample_filters[idx], eps=1e-3, momentum=0.01),
                 nn.ReLU()
             ))
 
@@ -51,7 +59,7 @@ class BaseBEVBackbone(nn.Module):
         if len(upsample_strides) > num_levels:
             self.deblocks.append(nn.Sequential(
                 nn.ConvTranspose2d(c_in, c_in, upsample_strides[-1], stride=upsample_strides[-1], bias=False),
-                nn.BatchNorm2d(c_in, eps=1e-3, momentum=0.01),
+                norm_layer(c_in, eps=1e-3, momentum=0.01),
                 nn.ReLU(),
             ))
 
