@@ -15,6 +15,13 @@ import argparse
 import datetime
 import glob
 
+torch.backends.cudnn.enabled = True
+try:
+    from apex import amp
+    APEX_AVAILABLE = True
+except ModuleNotFoundError:
+    APEX_AVAILABLE = False
+
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
@@ -36,6 +43,9 @@ def parse_config():
     parser.add_argument('--merge_all_iters_to_one_epoch', action='store_true', default=False, help='')
     parser.add_argument('--set', dest='set_cfgs', default=None, nargs=argparse.REMAINDER,
                         help='set extra config keys if needed')
+    parser.add_argument('--apex_level', type=str, default=None,
+                        help='APEX AMP mixed-precision training. Default is \'\' (not use apex).'
+                            'Other options: O0 (FP32), O1 (Mixed precision), O2 (Almost FP16), O3 (FP16)')
 
     parser.add_argument('--max_waiting_mins', type=int, default=0, help='max waiting minutes')
     parser.add_argument('--start_epoch', type=int, default=0, help='')
@@ -106,6 +116,16 @@ def main():
 
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
 
+    # Initialize APEX
+    use_apex = False
+    if args.apex_level != '':
+        if APEX_AVAILABLE:
+            assert args.apex_level in ['O0', 'O1', 'O2', 'O3']
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.apex_level)
+            use_apex = True
+        else:
+            print("APEX is not available. Please install it!")
+
     # load checkpoint if it is possible
     start_epoch = it = 0
     last_epoch = -1
@@ -155,7 +175,8 @@ def main():
         lr_warmup_scheduler=lr_warmup_scheduler,
         ckpt_save_interval=args.ckpt_save_interval,
         max_ckpt_save_num=args.max_ckpt_save_num,
-        merge_all_iters_to_one_epoch=args.merge_all_iters_to_one_epoch
+        merge_all_iters_to_one_epoch=args.merge_all_iters_to_one_epoch,
+        use_apex=use_apex,
     )
 
     logger.info('**********************End training %s/%s(%s)**********************\n\n\n'
