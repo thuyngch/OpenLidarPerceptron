@@ -118,7 +118,7 @@ def main():
 
     # Initialize APEX
     use_apex = False
-    if args.apex_level != '':
+    if args.apex_level is not None:
         if APEX_AVAILABLE:
             assert args.apex_level in ['O0', 'O1', 'O2', 'O3']
             model, optimizer = amp.initialize(model, optimizer, opt_level=args.apex_level)
