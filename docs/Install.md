@@ -10,6 +10,8 @@ conda activate 3d_thuync
 ```bash
 conda install pytorch=1.1.0 torchvision=0.3.0 cudatoolkit=9.2 -c pytorch
 pip install -r requirements.txt
+pip install ipython jupyterlab opencv-python mmcv pylint
+ipython kernel install --name "3d_thuync" --user
 ```
 
 * Install spconv:
